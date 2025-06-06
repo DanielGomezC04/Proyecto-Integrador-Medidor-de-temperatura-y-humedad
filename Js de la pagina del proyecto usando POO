@@ -1,0 +1,65 @@
+class TecnologiaIA {
+    constructor(nombre, tema, detalle) {
+        this.nombre = nombre;
+        this.tema = tema;
+        this.detalle = detalle;
+    }
+
+    mostrarResumen() {
+        return `
+            <div class="tarjeta">
+                <h3>${this.nombre}</h3>
+                <p><strong>Tema:</strong> ${this.tema}</p>
+                <p>${this.detalle}</p>
+            </div>
+        `;
+    }
+}
+
+const tecnologias = [
+    new TecnologiaIA("Machine Learning en detección de plagas", "Beneficio", "Permite identificar plagas y enfermedades en cultivos como café y banano antes de que sean visibles, reduciendo el uso de pesticidas y las pérdidas económicas."),
+    new TecnologiaIA("Riego automatizado con sensores", "Beneficio", "Monitorea la humedad del suelo en tiempo real para optimizar el uso de agua, incrementando la eficiencia hídrica."),
+    new TecnologiaIA("Análisis predictivo de cosechas", "Beneficio", "Utiliza datos históricos y clima para prever rendimientos agrícolas, lo que permite una mejor planificación y comercialización."),
+    new TecnologiaIA("Desigualdad en infraestructura rural", "Reto", "En zonas rurales colombianas hay poca conectividad y falta de acceso a tecnología, lo que limita la adopción de soluciones basadas en IA."),
+    new TecnologiaIA("Resistencia cultural al cambio", "Reto", "Muchos productores tradicionales desconfían o desconocen las tecnologías digitales, lo cual ralentiza su implementación."),
+    new TecnologiaIA("Falta de capacitación técnica", "Reto", "El desconocimiento en el uso y mantenimiento de sistemas de IA dificulta su uso eficiente en el agro."),
+    new TecnologiaIA("IA y sostenibilidad agroalimentaria", "Oportunidad", "La FAO destaca el potencial de la IA para lograr seguridad alimentaria y cumplir los Objetivos de Desarrollo Sostenible."),
+    new TecnologiaIA("Agricultura de precisión", "Oportunidad", "Permite tomar decisiones informadas con base en datos recolectados en tiempo real, mejorando rendimiento y sostenibilidad.")
+];
+
+function organizarTecnologiasPorTema() {
+    const temasOrganizados = {
+        "Beneficio": [],
+        "Reto": [],
+        "Oportunidad": []
+    };
+
+    tecnologias.forEach(tecnologia => {
+        temasOrganizados[tecnologia.tema].push(tecnologia);
+    });
+
+    return temasOrganizados;
+}
+
+function mostrarSeccion(tema) {
+   
+    const secciones = document.querySelectorAll('.seccion');
+    secciones.forEach(seccion => {
+        seccion.style.display = 'none';
+    });
+
+    const seccion = document.getElementById(tema);
+    seccion.style.display = 'block';
+
+    seccion.innerHTML = '';
+
+    const tecnologiasPorTema = organizarTecnologiasPorTema();
+
+    tecnologiasPorTema[tema].forEach(tecnologia => {
+        seccion.innerHTML += tecnologia.mostrarResumen();
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    mostrarSeccion("Beneficio");
+});
