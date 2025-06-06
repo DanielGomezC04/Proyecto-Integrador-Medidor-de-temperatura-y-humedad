@@ -1,4 +1,4 @@
-// AgroBot - Proyecto base con Johnny-Five y Node.js con análisis IA
+Proyecto Johnny-Five y Node.js con análisis IA
 
 const { Board, Sensor } = require("johnny-five");
 const fs = require("fs");
@@ -14,11 +14,11 @@ board.on("ready", () => {
 
   const datosSimulados = {
     temperatura: () => (20 + Math.random() * 10).toFixed(2),
-    humedadAire: () => (50 + Math.random() * 30).toFixed(2)
+    humedadAire: () => (50 + Math.random() * 30).toFixed(2),
   };
 
-  humedadSuelo.on("data", async function () {
-    const humedadTierra = this.value;
+  setInterval(() => {
+    const humedadTierra = humedadSuelo.value;
     const temperatura = parseFloat(datosSimulados.temperatura());
     const humedadAire = parseFloat(datosSimulados.humedadAire());
 
@@ -26,38 +26,50 @@ board.on("ready", () => {
       timestamp: new Date().toISOString(),
       temperatura,
       humedadAire,
-      humedadSuelo: humedadTierra
+      humedadSuelo: humedadTierra,
     };
 
     console.log("Dato:", datos);
     datosRecolectados.push(datos);
 
-    fs.appendFile("datos_sensor.json", JSON.stringify(datos) + ",\n", (err) => {
-      if (err) console.error("Error al guardar datos:", err);
+    fs.readFile("datos_sensor.json", "utf8", (err, data) => {
+      let datosExistentes = [];
+      if (!err && data.trim().length > 0) {
+        datosExistentes = JSON.parse(`[${data.slice(0, -2)}]`);
+      }
+      datosExistentes.push(datos);
+
+      fs.writeFile("datos_sensor.json", JSON.stringify(datosExistentes, null, 2), (err) => {
+        if (err) console.error("Error al guardar datos:", err);
+      });
     });
 
-    // Cuando haya suficientes datos, entrenar modelo y predecir
     if (datosRecolectados.length === 30) {
-      console.log("Entrenando IA con los primeros 30 datos...");
-
-      const X = datosRecolectados.map(d => d.humedadSuelo);
-      const Y = datosRecolectados.map(d => d.temperatura);
-
-      const xs = tf.tensor2d(X, [X.length, 1]);
-      const ys = tf.tensor2d(Y, [Y.length, 1]);
-
-      const model = tf.sequential();
-      model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
-      model.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
-
-      await model.fit(xs, ys, { epochs: 100 });
-      console.log("IA entrenada. Probando predicción...");
-
-      const input = tf.tensor2d([[400]]); // Ejemplo de humedad de suelo
-      const prediccion = model.predict(input);
-      prediccion.print();
-
+      entrenarIA(datosRecolectados);
       datosRecolectados = []; // Reiniciar para siguiente entrenamiento
     }
-  });
+  }, 1000); // Captura datos cada segundo
 });
+
+async function entrenarIA(datos) {
+  console.log("Entrenando IA con los primeros 30 datos...");
+
+  const X = datos.map(d => [d.humedadSuelo, d.humedadAire]);
+  const Y = datos.map(d => d.temperatura);
+
+  const xs = tf.tensor2d(X, [X.length, 2]);
+  const ys = tf.tensor2d(Y, [Y.length, 1]);
+
+  const model = tf.sequential();
+  model.add(tf.layers.dense({ units: 10, inputShape: [2], activation: "relu" }));
+  model.add(tf.layers.dense({ units: 1 }));
+
+  model.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
+
+  await model.fit(xs, ys, { epochs: 50 });
+  console.log("IA entrenada. Probando predicción...");
+
+  const input = tf.tensor2d([[400, 65]]); // Ejemplo con humedad de suelo y aire
+  const prediccion = model.predict(input);
+  prediccion.print();
+}
