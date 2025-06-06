@@ -1,0 +1,63 @@
+// AgroBot - Proyecto base con Johnny-Five y Node.js con análisis IA
+
+const { Board, Sensor } = require("johnny-five");
+const fs = require("fs");
+const tf = require("@tensorflow/tfjs-node");
+const board = new Board();
+
+let datosRecolectados = [];
+
+board.on("ready", () => {
+  console.log("Placa conectada. Iniciando sensores...");
+
+  const humedadSuelo = new Sensor("A0");
+
+  const datosSimulados = {
+    temperatura: () => (20 + Math.random() * 10).toFixed(2),
+    humedadAire: () => (50 + Math.random() * 30).toFixed(2)
+  };
+
+  humedadSuelo.on("data", async function () {
+    const humedadTierra = this.value;
+    const temperatura = parseFloat(datosSimulados.temperatura());
+    const humedadAire = parseFloat(datosSimulados.humedadAire());
+
+    const datos = {
+      timestamp: new Date().toISOString(),
+      temperatura,
+      humedadAire,
+      humedadSuelo: humedadTierra
+    };
+
+    console.log("Dato:", datos);
+    datosRecolectados.push(datos);
+
+    fs.appendFile("datos_sensor.json", JSON.stringify(datos) + ",\n", (err) => {
+      if (err) console.error("Error al guardar datos:", err);
+    });
+
+    // Cuando haya suficientes datos, entrenar modelo y predecir
+    if (datosRecolectados.length === 30) {
+      console.log("Entrenando IA con los primeros 30 datos...");
+
+      const X = datosRecolectados.map(d => d.humedadSuelo);
+      const Y = datosRecolectados.map(d => d.temperatura);
+
+      const xs = tf.tensor2d(X, [X.length, 1]);
+      const ys = tf.tensor2d(Y, [Y.length, 1]);
+
+      const model = tf.sequential();
+      model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+      model.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
+
+      await model.fit(xs, ys, { epochs: 100 });
+      console.log("IA entrenada. Probando predicción...");
+
+      const input = tf.tensor2d([[400]]); // Ejemplo de humedad de suelo
+      const prediccion = model.predict(input);
+      prediccion.print();
+
+      datosRecolectados = []; // Reiniciar para siguiente entrenamiento
+    }
+  });
+});
