@@ -1,6 +1,5 @@
-Proyecto Johnny-Five y Node.js con análisis IA
-
-const { Board, Sensor } = require("johnny-five");
+const { Board, Sensor, LCD } = require("johnny-five");
+const DHT = require("dht-sensor");
 const fs = require("fs");
 const tf = require("@tensorflow/tfjs-node");
 const board = new Board();
@@ -12,25 +11,40 @@ board.on("ready", () => {
 
   const humedadSuelo = new Sensor("A0");
 
-  const datosSimulados = {
-    temperatura: () => (20 + Math.random() * 10).toFixed(2),
-    humedadAire: () => (50 + Math.random() * 30).toFixed(2),
-  };
+  // Configuración del LCD (ajusta según tu módulo)
+  const lcd = new LCD({
+    controller: "PCF8574" // Si es un LCD I2C, usa este controlador
+  });
+
+  lcd.print("Sistema listo...");
+
+  function leerDHT11() {
+    const lectura = DHT.read(11, 2); // DHT11 en el pin 2
+    return {
+      temperatura: lectura.temperature.toFixed(2),
+      humedadAire: lectura.humidity.toFixed(2),
+    };
+  }
 
   setInterval(() => {
     const humedadTierra = humedadSuelo.value;
-    const temperatura = parseFloat(datosSimulados.temperatura());
-    const humedadAire = parseFloat(datosSimulados.humedadAire());
+    const { temperatura, humedadAire } = leerDHT11();
 
     const datos = {
       timestamp: new Date().toISOString(),
-      temperatura,
-      humedadAire,
+      temperatura: parseFloat(temperatura),
+      humedadAire: parseFloat(humedadAire),
       humedadSuelo: humedadTierra,
     };
 
     console.log("Dato:", datos);
     datosRecolectados.push(datos);
+
+    // Mostrar datos en la pantalla LCD
+    lcd.clear();
+    lcd.print(`Temp: ${temperatura}C`);
+    lcd.cursor(1, 0);
+    lcd.print(`Humedad suelo: ${humedadTierra}`);
 
     fs.readFile("datos_sensor.json", "utf8", (err, data) => {
       let datosExistentes = [];
@@ -64,12 +78,12 @@ async function entrenarIA(datos) {
   model.add(tf.layers.dense({ units: 10, inputShape: [2], activation: "relu" }));
   model.add(tf.layers.dense({ units: 1 }));
 
-  model.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
+  model.compile({ optimizer: "sgd", loss: "meanSquaredError" });
 
   await model.fit(xs, ys, { epochs: 50 });
   console.log("IA entrenada. Probando predicción...");
 
-  const input = tf.tensor2d([[400, 65]]); // Ejemplo con humedad de suelo y aire
+  const input = tf.tensor2d([[400, 65]]); // Prueba con humedad de suelo y aire
   const prediccion = model.predict(input);
   prediccion.print();
 }
