@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investigación IA en el Agropecuario</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>Impacto de la IA en el Sector Agropecuario</h1>
+
+    <div class="buttons">
+        <button class="btn" onclick="mostrarSeccion('Beneficio')">Beneficios</button>
+        <button class="btn" onclick="mostrarSeccion('Reto')">Retos</button>
+        <button class="btn" onclick="mostrarSeccion('Oportunidad')">Oportunidades</button>
+    </div>
+
+    <div id="Beneficio" class="seccion"></div>
+    <div id="Reto" class="seccion"></div>
+    <div id="Oportunidad" class="seccion"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
